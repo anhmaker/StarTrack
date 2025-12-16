@@ -1,0 +1,2 @@
+curl "https://api.nasa.gov/planetary/apod?api_key=LS6ckayXU1Zi0i6FUcTU0HYcVOkqpwRg5sUOpTdR"
+
