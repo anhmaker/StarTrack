@@ -34,9 +34,11 @@
 
   // Handle keyboard navigation
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'ArrowLeft' && $canGoPrev && !$isLoading) {
+    if (event.key === 'Escape' && isFullscreen) {
+      closeFullscreen();
+    } else if (event.key === 'ArrowLeft' && $canGoPrev && !$isLoading && !isFullscreen) {
       goToPrevDay();
-    } else if (event.key === 'ArrowRight' && $canGoNext && !$isLoading) {
+    } else if (event.key === 'ArrowRight' && $canGoNext && !$isLoading && !isFullscreen) {
       goToNextDay();
     }
   }
@@ -55,6 +57,17 @@
       month: 'long', 
       day: 'numeric' 
     });
+  }
+
+  // Fullscreen image viewer
+  let isFullscreen = false;
+
+  function openFullscreen() {
+    isFullscreen = true;
+  }
+
+  function closeFullscreen() {
+    isFullscreen = false;
   }
 
   // Download HD image
@@ -143,6 +156,10 @@
               alt={$apodData.title}
               class="apod-image"
               loading="lazy"
+              on:click={openFullscreen}
+              role="button"
+              tabindex="0"
+              on:keydown={(e) => e.key === 'Enter' && openFullscreen()}
             />
           {/if}
         </div>
@@ -169,6 +186,20 @@
     </p>
   </footer>
 </main>
+
+{#if isFullscreen && $apodData && $apodData.media_type === 'image'}
+  <div class="fullscreen-overlay" on:click={closeFullscreen} role="button" tabindex="0" on:keydown={(e) => e.key === 'Enter' && closeFullscreen()}>
+    <button class="fullscreen-close" on:click={closeFullscreen} aria-label="Close fullscreen">
+      ✕
+    </button>
+    <img 
+      src={$apodData.hdurl || $apodData.url} 
+      alt={$apodData.title}
+      class="fullscreen-image"
+      on:click={(e) => e.stopPropagation()}
+    />
+  </div>
+{/if}
 
 <style>
   .container {
@@ -377,10 +408,12 @@
     display: block;
     object-fit: contain;
     transition: transform 0.3s ease;
+    cursor: pointer;
   }
 
   .apod-image:hover {
     transform: scale(1.02);
+    opacity: 0.95;
   }
 
   .apod-video {
@@ -440,6 +473,69 @@
     font-size: 0.85rem;
   }
 
+  /* Fullscreen Image Viewer */
+  .fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+    cursor: pointer;
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .fullscreen-image {
+    max-width: 95vw;
+    max-height: 95vh;
+    object-fit: contain;
+    cursor: default;
+    animation: zoomIn 0.3s ease-out;
+  }
+
+  @keyframes zoomIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .fullscreen-close {
+    position: fixed;
+    top: var(--space-lg);
+    right: var(--space-lg);
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid var(--color-stardust);
+    border-radius: 50%;
+    color: var(--color-stardust);
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10000;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+
+  .fullscreen-close:hover {
+    background: var(--color-nova);
+    border-color: var(--color-nova);
+    color: white;
+    transform: rotate(90deg);
+  }
+
   /* Responsive */
   @media (max-width: 600px) {
     .container {
@@ -461,6 +557,18 @@
 
     .apod-info {
       padding: var(--space-lg);
+    }
+
+    .fullscreen-close {
+      width: 40px;
+      height: 40px;
+      font-size: 1.2rem;
+      top: var(--space-md);
+      right: var(--space-md);
+    }
+
+    .fullscreen-overlay {
+      padding: var(--space-sm);
     }
   }
 </style>
