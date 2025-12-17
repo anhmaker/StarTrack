@@ -2,6 +2,12 @@
 
 Progressive Web App для просмотра NASA Astronomy Picture of the Day.
 
+## 🎬 Превью
+
+https://github.com/user-attachments/assets/preview.mp4
+
+<video src="preview.mp4" width="100%" autoplay loop muted></video>
+
 ## Архитектура
 
 ```
