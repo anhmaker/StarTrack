@@ -35,17 +35,27 @@ def get_apod():
         date_str = datetime.now().strftime('%Y-%m-%d')
     
     # Import here to avoid circular imports
-    from app.apod_service import get_apod_data
+    from app.apod_service import get_apod_data, ApodNotFoundError, ApodServiceUnavailableError, ApodError
     
     try:
         data = get_apod_data(date_str)
         return jsonify(data)
+    except ApodNotFoundError as e:
+        return jsonify({'error': str(e)}), 404
+    except ApodServiceUnavailableError as e:
+        return jsonify({'error': str(e)}), 503
+    except ApodError as e:
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Log the actual error for debugging (server-side only)
+        print(f"[API] Unexpected error: {e}")
+        # Return a generic message to the user
+        return jsonify({'error': 'An unexpected error occurred. Please try again later.'}), 500
 
 
 @api_bp.route('/api/health')
 def health():
     """Health check endpoint."""
     return jsonify({'status': 'ok'})
+
 

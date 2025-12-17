@@ -5,6 +5,21 @@ from typing import Dict, Any
 NASA_API_URL = "https://api.nasa.gov/planetary/apod"
 
 
+class ApodError(Exception):
+    """Safe error class that hides sensitive details from users."""
+    pass
+
+
+class ApodNotFoundError(ApodError):
+    """APOD not available for the requested date."""
+    pass
+
+
+class ApodServiceUnavailableError(ApodError):
+    """NASA API is temporarily unavailable."""
+    pass
+
+
 def fetch_apod_from_nasa(date: str) -> Dict[str, Any]:
     """Fetch APOD data directly from NASA API."""
     api_key = os.environ.get('NASA_API_KEY', 'DEMO_KEY')
@@ -14,8 +29,38 @@ def fetch_apod_from_nasa(date: str) -> Dict[str, Any]:
         'date': date
     }
     
-    response = requests.get(NASA_API_URL, params=params, timeout=30)
-    response.raise_for_status()
+    try:
+        response = requests.get(NASA_API_URL, params=params, timeout=30)
+        
+        if response.status_code == 404:
+            # Log for debugging (server-side only)
+            print(f"[APOD] No data available for date: {date}")
+            raise ApodNotFoundError("The future hasn't arrived yet, but we'll get there.")
+        
+        if response.status_code == 400:
+            print(f"[APOD] Bad request for date: {date}")
+            raise ApodError("Invalid request. Please check the date format.")
+        
+        if response.status_code == 403:
+            print(f"[APOD] API key issue")
+            raise ApodServiceUnavailableError("Service temporarily unavailable. Please try again later.")
+        
+        if response.status_code >= 500:
+            print(f"[APOD] NASA API error: {response.status_code}")
+            raise ApodServiceUnavailableError("NASA API is currently unavailable. Please try again later.")
+        
+        response.raise_for_status()
+        
+    except requests.exceptions.Timeout:
+        print(f"[APOD] Request timeout for date: {date}")
+        raise ApodServiceUnavailableError("Request timed out. Please try again.")
+    except requests.exceptions.ConnectionError:
+        print(f"[APOD] Connection error")
+        raise ApodServiceUnavailableError("Could not connect to NASA API. Please check your internet connection.")
+    except requests.exceptions.HTTPError as e:
+        # Log full error for debugging (server-side)
+        print(f"[APOD] HTTP error: {e}")
+        raise ApodServiceUnavailableError("An error occurred while fetching data. Please try again later.")
     
     data = response.json()
     
